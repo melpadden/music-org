@@ -97,7 +97,6 @@ def process_album(artist, album, input_path, out_dir):
             print(f"Skipping file: {output_file}")
             continue
         
-        print(f"Creating file: {output_file}")
         # Load the M4A metadata
         mp4_metadata = MP4(filepath)
 
@@ -116,10 +115,14 @@ def process_album(artist, album, input_path, out_dir):
         # Create the output file path
         #print(f"Output file: {output_file}")
         # Load the .m4a file
-        mp4file=AudioSegment.from_file(filepath, format="m4a")
-
+        print(f"Creating file: {output_file}")
         # Export as .mp3
-        mp4file.export(output_file, format="mp3")
+        try:
+            mp4file=AudioSegment.from_file(filepath, format="m4a")
+            mp4file.export(output_file, format="mp3")
+        except Exception as e:
+            print(f"Error exporting file: {e}")
+            continue
         
         # Add metadata using mutagen
         try:
