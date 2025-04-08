@@ -28,7 +28,7 @@ def main():
         "--music-path",
         "-mp",
         dest="music_path",
-        default="/Volumes/melnas/iTunes/Music/4hero",
+        default="/Volumes/melnas/iTunes/Music",
         help="Path to traverse for music files"
     )
     parser.add_argument(
@@ -60,8 +60,7 @@ def main():
 
 
 def get_music(music_path, output_path):
-    global musicSet
-    musicSet = set()
+    music_set = set()
     for root, dirs, files in os.walk(music_path):
         print(f"Processing directory: {root}")
         # print(f"Files: {files}")
@@ -78,19 +77,22 @@ def get_music(music_path, output_path):
         title = audio.get("\xa9nam", ["Unknown Title"])[0]
         album = audio.get("\xa9alb", ["Unknown Album"])[0]
         track_number = audio.get("trkn", ["Unknown track Number"])[0][0]
-
+        music = Music(artist, album, title, track_number)
+        music_set.add(music)
+        
+        # Print the metadata
         print(f"Title: {title}")
         print(f"Artist: {artist}")
         print(f"Album: {album}")
         print(f"Track Number: {track_number}")
 
         # Access the audio properties
-        print(f"Bitrate: {audio.info.bitrate / 1000:.2f} kbps")
-        print(f"Sample Rate: {audio.info.sample_rate} Hz")
-        print(f"Channels: {audio.info.channels}")
+        # print(f"Bitrate: {audio.info.bitrate / 1000:.2f} kbps")
+        # print(f"Sample Rate: {audio.info.sample_rate} Hz")
+        # print(f"Channels: {audio.info.channels}")
 
         # Print duration
-        print(f"Duration: {audio.info.length:.2f} seconds")
+        # print(f"Duration: {audio.info.length:.2f} seconds")
 
         out_dir = os.path.join(output_path, f"{artist}-{album}")
         if not os.path.exists(out_dir):
