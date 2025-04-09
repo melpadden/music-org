@@ -41,7 +41,7 @@ def main():
     parser.add_argument(
         "--excluded",
         nargs="+",
-        default=["White Noise", "Audiobooks", "Podcasts", ".DS_Store"],
+        default=["White Noise", "Audiobooks", "Podcasts", ".DS_Store", "Calming Water Consort"],
         dest="excluded",
         # type=str,
         # # type=lambda x: x.split(","),
@@ -54,6 +54,13 @@ def main():
         dest="music_set",
         help="Precompiled JSON list of tracks to convert"
     )
+    parser.add_argument(
+        "--dry-run",
+        "-dr",
+        default=True,
+        dest="dry_run",
+        help="Refresh the rrecompiled JSON list of tracks to convert"
+    )
     args = parser.parse_args()
 
     # music_path, excluded, output_path
@@ -61,11 +68,13 @@ def main():
     excluded = args.excluded
     output_path = args.output_path
     music_set_path= args.music_set
+    dry_run = args.dry_run
 
     print(f"Music path: {music_path}")
     print(f"Output path: {output_path}")
     print(f"Excluded directories: {excluded}")
     print(f"Music path: {music_path}")
+    print(f"Dry run: {dry_run}")
     # print(f"Excluded directories: {excluded}")
 
     # Call your function to process music files
@@ -73,17 +82,22 @@ def main():
     if music_set_path:
         music_set = load_music_set(music_set_path)
         print(f"Music set loaded from {music_set_path}")
-        
-    music_set = get_music_set(music_path, output_path, excluded)
-    save_music_set(music_set, output_path)
+    else:
+        print(f"Creating music set from {music_path}")
+        music_set = get_music_set(music_path, output_path, excluded)
+        save_music_set(music_set, output_path)
     
+    if dry_run:
+        print(f"Dry run: not converting music files")
+        return
+
+    # Convert the music set to mp3 files
     print(f"Converting music set to mp3 files")
     for metadata in music_set:
         write_mp3_file(metadata, output_path)
         
     print(f"Completed processing music files in {music_path}")
     
-
 
 def get_music_structure(music_path, output_path, excluded=[]):
     print(f"Processing root directory: {music_path}")
@@ -170,8 +184,8 @@ def get_music_set(music_path, output_path, excluded=[]):
         for filename in Path(os.path.join(music_path, dir)).rglob("*.m4a"):
             metadata = get_mp4_metadata(filename)
             if not music_set.__contains__(metadata):
-                music_set.add(metadata)
                 count = count + 1
+                music_set.add(metadata)
 
         print(f"Loaded directory: {dir}, {count} files")
 
