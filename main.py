@@ -1,6 +1,5 @@
-# https://irenenaya.medium.com/sorting-your-music-library-with-python-1f0eff8c59cd
-
 import argparse
+import log
 import os
 # load the libraries that we'll use
 from mutagen.mp4 import MP4
@@ -21,8 +20,9 @@ from metadata import Metadata
 # /Volumes/melnas/iTunes/Music
 # /dev/disk4
 
-
+log = log.setup_logger()
 def main():
+    
     parser = argparse.ArgumentParser(description="Music Library Organizer")
     parser.add_argument(
         "--music-path",
@@ -41,10 +41,8 @@ def main():
     parser.add_argument(
         "--excluded",
         nargs="+",
-        default=["White Noise", "Audiobooks", "Podcasts", ".DS_Store", "Calming Water Consort"],
+        default=["White Noise", "Audiobooks", "Podcasts", ".DS_Store", "Calming Water Consort", "The Yoga Masters", ".Media Preferences.plist"],
         dest="excluded",
-        # type=str,
-        # # type=lambda x: x.split(","),
         help="List of directories to exclude"
     )
     parser.add_argument(
@@ -70,126 +68,88 @@ def main():
     music_set_path= args.music_set
     dry_run = args.dry_run
 
-    print(f"Music path: {music_path}")
-    print(f"Output path: {output_path}")
-    print(f"Excluded directories: {excluded}")
-    print(f"Music path: {music_path}")
-    print(f"Dry run: {dry_run}")
-    # print(f"Excluded directories: {excluded}")
+    log.info(f"Music path: {music_path}")
+    log.info(f"Output path: {output_path}")
+    log.info(f"Excluded directories: {excluded}")
+    log.info(f"Music path: {music_path}")
+    log.info(f"Dry run: {dry_run}")
+    # log.info(f"Excluded directories: {excluded}")
 
     # Call your function to process music files
     # get_music_structure(music_path, output_path, excluded)
     if music_set_path:
         music_set = load_music_set(music_set_path)
-        print(f"Music set loaded from {music_set_path}")
+        log.info(f"Music set loaded from {music_set_path}")
     else:
-        print(f"Creating music set from {music_path}")
-        music_set = get_music_set(music_path, output_path, excluded)
+        log.info(f"Creating music set from {music_path}")
+        music_set = get_music_set(music_path, excluded)
         save_music_set(music_set, output_path)
     
-    if dry_run:
-        print(f"Dry run: not converting music files")
+    if dry_run == "True":
+        log.info(f"Dry run: not converting music files")
+        log.info(f"Number of music files: {len(music_set)}")
         return
 
     # Convert the music set to mp3 files
-    print(f"Converting music set to mp3 files")
+    log.info(f"Converting music set to mp3 files")
     for metadata in music_set:
         write_mp3_file(metadata, output_path)
         
-    print(f"Completed processing music files in {music_path}")
+    log.info(f"Completed processing music files in {music_path}")
     
 
-def get_music_structure(music_path, output_path, excluded=[]):
-    print(f"Processing root directory: {music_path}")
-    for artist in os.listdir(music_path):
-        if artist in excluded:
-            print(f"Excluding artist: {artist}")
-            continue
-        artist_path = os.path.join(music_path, artist)
-        if os.path.isdir(artist_path):
-            print(f"Processing artist directory: {artist}")
-            for album in os.listdir(artist_path):
-                if album in excluded:
-                    print(f"Excluding album: {album}")
-                    continue
-
-                print(f"Processing album: {album}")
-                album_path = os.path.join(artist_path, album)
-                out_dir = os.path.join(output_path, f"{artist}-{album}")
-
-                if not os.path.exists(out_dir):
-                    os.makedirs(out_dir)
-
-                process_album(artist, album, album_path, out_dir)
-
-
-def process_album(artist, album, input_path, out_dir):
-    print(f"Processing album: {album} from artist: {artist}")
-    for filepath in Path(input_path).rglob("*.m4a"):
-        filename = os.path.basename(filepath)
-        metadata = get_mp4_metadata(filepath)
-
-        # track_number = filename[:2]
-        # output_file=os.path.join(
-        #     out_dir, f"{track_number}-{filename[3:].rstrip(".m4a")}.mp3")
-        output_file = os.path.join(
-            out_dir, f"{filename[3:].rstrip(".m4a")}.mp3")
-        if os.path.exists(output_file):
-            print(f"Skipping file: {output_file}")
-            continue
-
-        # Load the M4A metadata
-        mp4_metadata = MP4(filepath)
-
-        print(f"Creating file: {output_file}")
-        # Export as .mp3
-        try:
-            mp4file = AudioSegment.from_file(filepath, format="m4a")
-            mp4file.export(output_file, format="mp3")
-        except Exception as e:
-            print(f"Error exporting file: {e}")
-            continue
-
-        # Add metadata using mutagen
-        try:
-            tags = EasyID3(output_file)
-        except ID3NoHeaderError:
-            tags = EasyID3()
-            tags.save(output_file)  # Add ID3 header if not present
-            tags = EasyID3(output_file)
-
-        tags["title"] = title
-        tags["artist"] = artist
-        tags["tracknumber"] = str(track_number)
-        tags["album"] = album
-        tags["genre"] = genre
-        tags["date"] = date
-
-        tags.save()
-
-    print(f"Completed album: {album} from artist: {artist}")
-
-
-def get_music_set(music_path, output_path, excluded=[]):
-    print(f"Processing root directory: {music_path}")
+def get_music_set(music_path, excluded=[]):
+    log.info(f"Processing root directory: {music_path}")
     music_set = set()
     for dir in os.listdir(music_path):
         count = 0
         if dir in excluded:
-            print(f"Excluding directory: {dir}")
+            log.info(f"Excluding directory: {dir}")
             continue
-
-        print(f"Processing directory: {dir}")
+        
+        # next_set = process_directory(dir_path=os.path.join(music_path, dir), excluded=excluded)
+        # music_set = music_set.union(next_set)
 
         for filename in Path(os.path.join(music_path, dir)).rglob("*.m4a"):
             metadata = get_mp4_metadata(filename)
+            if metadata is None:
+                continue
             if not music_set.__contains__(metadata):
                 count = count + 1
                 music_set.add(metadata)
 
-        print(f"Loaded directory: {dir}, {count} files")
+        log.info(f"Loaded directory: {dir}, {count} files")
 
-    print(f"Loaded {len(music_set)} unique music files")
+    log.info(f"Loaded {len(music_set)} unique music files")
+    save_music_set(music_set, music_path)
+    log.info(f"Music set saved to {music_path}/music_set.json")
+    return music_set
+
+def process_directory(dir_path, excluded=[]):
+    log.info(f"Processing directory: {dir_path}")
+    music_set = set()
+    music_files = glob.glob(os.path.join(dir_path, "*.m4a"))
+    if not music_files:
+        log.info(f"No music files found in directory: {dir_path}")
+    else:
+        log.info(f"Found {len(music_files)} music files in directory: {dir_path}")
+        
+        for filename in music_files:
+            metadata = get_mp4_metadata(filename)
+            music_set.add(metadata)
+
+        log.info(f"Loaded {len(music_set)} unique music files")
+        save_music_set(music_set, dir_path)
+   
+    dirs = [d for d in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, d))]
+    for dir in dirs:
+        if dir in excluded:
+            log.info(f"Excluding directory: {dir}")
+            continue
+
+        next_set = process_directory(os.path.join(dir_path, dir), excluded)
+        music_set = music_set.union(next_set)
+
     return music_set
 
 def save_music_set(music_set, output_path):
@@ -202,13 +162,14 @@ def save_music_set(music_set, output_path):
             "track_number": metadata.track_number,
             "genre": metadata.genre,
             "date": metadata.date,
+            "filename": str(metadata.filename) 
         }
         for metadata in music_set
     ]
     json_file_path = os.path.join(output_path, "music_set.json")
     with open(json_file_path, "w") as json_file:
         json.dump(music_set_json, json_file, indent=4)
-    print(f"Music set saved to {json_file_path}")
+    log.info(f"Music set saved to {json_file_path}")
     
 def load_music_set(json_file_path):
     with open(json_file_path, "r") as json_file:
@@ -223,7 +184,7 @@ def load_music_set(json_file_path):
             track_number=metadata["track_number"],
             genre=metadata["genre"],
             date=metadata["date"],
-            filename=None  # filename is not needed here
+            filename=metadata["filename"]  # filename is not needed here
         )
         for metadata in music_set
     ]
@@ -235,39 +196,45 @@ def write_music_set(music_set, output_path):
         write_mp3_file(metadata, output_path)
 
 def get_mp4_metadata(filepath):
-    mp4file = MP4(filepath)
-    artist = mp4file.get("\xa9ART", ["Unknown Artist"])[0]
-    title = mp4file.get("\xa9nam", ["Unknown Title"])[0]
-    album = mp4file.get("\xa9alb", ["Unknown Album"])[0]
-    track_number = mp4file.get("trkn", ["Unknown track Number"])[0][0]
-    genre = mp4file.get("\xa9gen", ["Unknown Genre"])[0]
-    date = mp4file.get("\xa9day", ["Unknown Date"])[0]
-
-    return Metadata(
-        artist=artist,
-        album=album,
-        title=title, 
-        track_number=track_number,
-        genre=genre,
-        date=date,
-        filename=filepath)
+    try:    
+        mp4file = MP4(filepath)
+        artist = mp4file.get("\xa9ART", ["Unknown Artist"])[0]
+        title = mp4file.get("\xa9nam", ["Unknown Title"])[0]
+        album = mp4file.get("\xa9alb", ["Unknown Album"])[0]
+        track_number = mp4file.get("trkn", ["Unknown track Number"])[0][0]
+        genre = mp4file.get("\xa9gen", ["Unknown Genre"])[0]
+        date = mp4file.get("\xa9day", ["Unknown Date"])[0]
+        return Metadata(
+            artist=artist,
+            album=album,
+            title=title, 
+            track_number=track_number,
+            genre=genre,
+            date=date,
+            filename=filepath)
+        
+    except Exception as e:
+        log.error(f"Error getting metadata from file {filepath}: {e}")
+        return None
 
 def write_mp3_file(metadata, output_path):
-    output_dir = os.path.join(output_path, f"{metadata.artist}-{metadata.album}")
-    output_file = os.path.join(
+    
+    output_dir = f"{metadata.artist}-{metadata.album}".replace("/", "_").replace(":", "-")
+    output_file = os.path.join(        
+        output_path,        
         output_dir, 
-        f"{str(metadata.track_number).zfill(2)}-{metadata.title.replace("/", "-")}.mp3")
+        f"{str(metadata.track_number).zfill(2)}-{metadata.title.replace("/", "_").replace(":", "-")}.mp3")
     if os.path.exists(output_file):
         return
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    if not os.path.exists(os.path.join(output_path, output_dir)):
+        os.makedirs(os.path.join(output_path, output_dir))
 
-    print(f"Output file: {output_file}")
+    log.info(f"Output file: {output_file}")
     try:
         mp4file = AudioSegment.from_file(metadata.filename, format="m4a")
         mp4file.export(output_file, format="mp3")
     except Exception as e:
-        print(f"Error exporting file: {e}")
+        log.error(f"Error exporting file: {e}")
         return
     try:
         tags = EasyID3(output_file)
@@ -276,13 +243,23 @@ def write_mp3_file(metadata, output_path):
         tags.save(output_file)  # Add ID3 header if not present
         tags = EasyID3(output_file)
 
-    tags["title"] = metadata.title
-    tags["artist"] = metadata.artist
-    tags["tracknumber"] = metadata.track_number
-    tags["album"] = metadata.album
-    tags["genre"] = metadata.genre
-    tags["date"] = metadata.date
-    tags.save()
+    try:
+        tags["title"] = metadata.title
+        tags["artist"] = metadata.artist
+        tags["tracknumber"] = str(metadata.track_number)
+        tags["album"] = metadata.album
+        tags["genre"] = metadata.genre
+        tags["date"] = str(metadata.date)
+    except KeyError as e:
+        log.error(f"KeyError: {e}")
+    except ValueError as e:
+        log.error(f"KeyError: {e}")
+        
+    try:
+        tags.save()
+    except Exception as e:
+        log.error(f"Error saving tags: {e}")
+        return
 
 if __name__ == "__main__":
     main()
