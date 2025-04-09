@@ -1,9 +1,12 @@
-class Music:
-    def __init__(self, artist, album, title, track_number):
+class Metadata:
+    def __init__(self, artist, album, title, track_number, genre, date, filename):
         self.artist = artist
         self.album = album
         self.title = title
         self.track_number = track_number
+        self.genre = genre
+        self.date = date
+        self.filename = filename
 
     def __eq__(self, other):
         return ((self.title == other.title) and
