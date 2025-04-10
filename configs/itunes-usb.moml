@@ -1,0 +1,10 @@
+{
+    "version": "0.0.1",
+    "name": "iTunes USB",
+    "description": "iTunes USB configuration for iOS devices",
+    "author": "Your Name",
+    "input_folder": "/",
+    "output_folder": "output",
+    "excluded_folders": ["excluded"],
+    "excluded_files": ["excluded_file.txt"],
+}

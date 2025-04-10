@@ -25,6 +25,13 @@ def main():
     
     parser = argparse.ArgumentParser(description="Music Library Organizer")
     parser.add_argument(
+        "--config-file",
+        "-cf",
+        dest="config_file",
+        default="./configs/itunes-usb-moml",
+        help="MOML Configuration file"
+    )
+    parser.add_argument(
         "--music-path",
         "-mp",
         dest="music_path",
@@ -67,6 +74,7 @@ def main():
     output_path = args.output_path
     music_set_path= args.music_set
     dry_run = args.dry_run
+    config_file = args.config_file
 
     log.info(f"Music path: {music_path}")
     log.info(f"Output path: {output_path}")
